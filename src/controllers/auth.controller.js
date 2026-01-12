@@ -3,6 +3,8 @@ import User from "../models/User.js";
 import Hotel from "../models/Hotel.js";
 import generateToken from "../utils/generateToken.js";
 
+
+//1. Register Hotel Controller
 export const registerHotel = async (req, res) => {
   try {
     const {
@@ -92,6 +94,46 @@ export const registerHotel = async (req, res) => {
         email: user.email,
         role: user.role,
       },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//2. Login Controller
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    const user = await User.findOne({ email }).select("+password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.authProvider !== "LOCAL") {
+      return res.status(400).json({ message: `Use ${user.authProvider} login` });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid password" });
+    }
+
+    const token = generateToken(user);
+
+    res.json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role
+      }
     });
   } catch (error) {
     console.error(error);
